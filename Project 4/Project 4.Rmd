@@ -14,6 +14,7 @@ library(gridExtra)
 library(maps)
 library(ggthemes)
 library(memisc)
+library(scales)
 ```
 
 
@@ -37,7 +38,8 @@ prosper$ProsperScore <- factor(prosper$ProsperScore, ordered = TRUE,
 str(prosper$ProsperScore)
 
 prosper$ProsperRating <- factor(prosper$ProsperRating..Alpha., ordered = TRUE,
-                                levels = c('HR', 'E', 'D', 'C', 'B', 'A', 'AA'))
+                                levels = c('HR', 'E', 'D', 'C', 
+                                           'B', 'A', 'AA'))
 str(prosper$ProsperRating)
 ```
 
@@ -47,9 +49,10 @@ str(prosper$ProsperRating)
 
 ```{r echo=FALSE, warning=FALSE, Univariate_Plots}
 #1 Number of Loans by Prosper Rating
-ggplot(aes(x = ProsperRating), data = subset(prosper, !is.na(ProsperRating))) +
+ggplot(aes(x = ProsperRating), 
+       data = subset(prosper, !is.na(ProsperRating))) +
    geom_histogram(stat="count", color = 'black', 
-                  fill = colorRampPalette(c('red', 'green'))(7)) +
+                  fill = 'light blue') +
    ggtitle('Number of Loans by Prosper Rating') +
    xlab('Prosper Rating') +
    ylab('Count') +
@@ -64,7 +67,7 @@ summary(prosper$ProsperRating[!is.na(prosper$ProsperRating)])
 #2 Number of loans by Prosper Score
 ggplot(aes(x = ProsperScore), data = subset(prosper, !is.na(ProsperScore))) +
    geom_histogram(stat="count", color = 'black', 
-                  fill = colorRampPalette(c('Red', 'Green'))(11)) +
+                  fill = 'light blue') +
    xlab('Prosper Score') +
    ylab('Count') +
    ggtitle('Number of Loans by Prosper Scores') +
@@ -102,7 +105,7 @@ ggplot(aes(x = IncomeRange), data = prosper) +
 #4. Number of Loans by Loan Amount
 ggplot(aes(x = LoanOriginalAmount), data = prosper) +
    geom_bar(color = 'black', binwidth = 1000, 
-            fill = colorRampPalette(c('light green', 'dark red'))(35)) +
+            fill = 'light blue') +
    scale_x_continuous(breaks = seq(0,35000,5000)) +
    ggtitle('Number of Loans by Loan Amount') +
    xlab('Loan Amount') +
@@ -193,11 +196,14 @@ summary(prosper$LenderYield)
 ```{r echo=FALSE, message=FALSE,warning=FALSE}
 #9. Number of Loans by Status
 # Turn the categorical variables into more meaningful and concise ordered factor variables.
-prosper <- mutate(prosper, Status = ifelse(LoanStatus %in% c('Chargedoff', 'Defaulted'), 0,
-                   ifelse(LoanStatus %in% c('Current', 'FinalPaymentInProgress','Completed'), 3,
+prosper <- mutate(prosper, Status = ifelse(LoanStatus %in% 
+                                              c('Chargedoff', 'Defaulted'), 0,
+                   ifelse(LoanStatus %in% c('Current', 'FinalPaymentInProgress',
+                                            'Completed'), 3,
                    ifelse(LoanStatus %in% c('Cancelled'), 2, 1))))
 prosper$Status <- factor(prosper$Status, levels = c(0, 1, 2, 3), 
-                         labels = c('Defaulted', 'Past Due', 'Cancelled', 'Current or Paid'))
+                         labels = c('Defaulted', 'Past Due', 'Cancelled', 
+                                    'Current or Paid'))
                                                    
 ggplot(aes(x = Status), data = prosper) +
    geom_histogram(stat = 'count', color = 'black', fill = 'light blue') +
@@ -216,26 +222,15 @@ summary(prosper$LoanStatus)
 ### What is the structure of your dataset?
 The Prosper Loans dataset has 113937 observations and 83 variables. The variables contain 3 classes - numeric, factor, and int. The variables I explored in the Univariate Plotting section included the
 
-ProsperRating: Factor variable with levels 'HR', 'E', 'D', 'C', 'B', 'A', 'AA'
-ProsperScore: Factor variable with levels '1', '2', '3', '4', '5', '6','7', '8', '9', '10', '11'
-IncomeRange: Factor variable with levels 'Not displayed', 'Not employed', '$0', 
-                                         '$1-24,999', '$25,000-49,999', 
-                                         '$50,000-74,999', '$75,000-99,999', 
-                                         '$100,000+'
+ProsperRating: Factor variable with 7 levels
+ProsperScore: Factor variable with 11 levels
+IncomeRange: Factor variable with 8 levels
 LoanOriginalAmount: Integer variable
 BorrowerState: Factor variable with 51 levels
-ListCategory: Factor variable with 20 levels: 'Not Available','Debt Consolidation', 
-                                         'Home Improvement', 'Business', 
-                                         'Personal Loan', 'Student Use', 
-                                         'Auto', 'Other', 'Baby&Adoption', 
-                                         'Boat', 'Cosmetic Procedure', 
-                                         'Engagement Ring', 'Green Loans', 
-                                         'Household Expenses', 'Large Purchases', 
-                                         'Medical/Dental', 'Motorcycle', 'RV', 
-                                         'Taxes', 'Vacation', 'Wedding Loans'
+ListCategory: Factor variable with 20 levels
 Investors: Integer variable
 LenderYield: Numeric variable
-Status: Factor variable with levels 'Defaulted', 'Past Due', 'Cancelled', and 'Current or Paid'
+Status: Factor variable with 4 levels
 
 ### What is/are the main feature(s) of interest in your dataset?
 I want to determine whether the **Loan Status** of a loan is connected or affected by certain variables, such as yields or whether the income or ratings of the loaners are good. I also want to check out how the **Lender Yield** is affected by things like credit scores and Prosper scores.
@@ -255,29 +250,32 @@ I did factorize and ordered a few variables. I did this because statistical mode
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots}
 #10. General bivariate exploration
-prosper$CreditScoreRangeAvg <- (prosper$CreditScoreRangeLower + prosper$CreditScoreRangeUpper)/2
+prosper$CreditScoreRangeAvg <- (prosper$CreditScoreRangeLower + 
+                                   prosper$CreditScoreRangeUpper)/2
 
-prosperSub <- prosper[, c('ProsperScore', 'ProsperRating', 'IncomeRange',
-                          'LoanOriginalAmount', 'Investors', 'LenderYield', 
-                          'Status', 'CreditScoreRangeAvg', 'Term')]
-ggpairs(prosperSub)
+prosperSub <- prosper[, c('LoanOriginalAmount', 'Investors', 'LenderYield', 
+                          'CreditScoreRangeAvg', 'Term')]
+ggpairs(prosperSub) #ggcorr is unavailable for R version 3.4.0
 
 prosperCont <- prosper[, c('LoanOriginalAmount', 'Investors', 'LenderYield')]
 with(prosper, cor(prosperCont))
 ```
 
-> A quick correlation matrix shows that the continuous variables LoanOriginalAmount, Investors, and LenderYield do not have a strong correlation amongst each other. Based on the generalized pairs plot, however, there may be something going on with Score and Rating with the Investors variable. Let's check them out.
+> A quick correlation matrix shows that the continuous variables LoanOriginalAmount, Investors, LenderYield, CreditScoreRangeAvg, and Term do not have a strong correlation amongst each other. I do want to check out the relationship (if any) between Score and Rating with the Investors variable.
 
 ```{r message= FALSE, echo=FALSE}
 #11. Relationship between Prosper Score and Prosper Rating
-ggplot(aes(y = ProsperScore, x = ProsperRating), data = subset(subset(prosper, !is.na(ProsperScore)), !is.na(ProsperRating))) +
-   geom_point(alpha = 1/500, color = 'black') +
+prosperSR <- prosper %>% group_by(ProsperRating, ProsperScore) %>%
+   summarise(n = n())
+
+ggplot(aes(y = ProsperScore, x = ProsperRating), 
+       data = subset(prosperSR, !is.na(ProsperScore)))+
+   geom_tile(aes(fill = n)) +
+   scale_fill_gradient(low = 'lightblue', high = 'blue') +
    ggtitle('Prosper Score vs Prosper Rating') +
    xlab('Prosper Rating') +
    ylab('Prosper Score') +
    theme(plot.title = element_text(hjust=0.5)) 
-by(prosper$ProsperScore, prosper$ProsperRating, summary)
-
 
 ```
 
@@ -285,15 +283,17 @@ by(prosper$ProsperScore, prosper$ProsperRating, summary)
 
 ```{r message = FALSE, echo = FALSE}
 #12. Investors by Prosper Score
-ggplot(aes(x = ProsperScore, y = Investors), data = subset(prosper, !is.na(ProsperScore))) +
-   geom_boxplot(color = 'black', fill = colorRampPalette(c('red', 'green'))(11)) +
-   coord_cartesian(ylim = c(0, 500)) +
+ggplot(aes(x = ProsperScore, y = Investors), 
+       data = subset(prosper, !is.na(ProsperScore))) +
+   geom_boxplot(color = 'black', fill = 'light blue') +
+   coord_cartesian(ylim = c(0, 250)) +
    ggtitle('Number of Investors by Prosper Score') +
    xlab('Prosper Score') +
    ylab('Number of Investors') +
    theme(plot.title = element_text(hjust = 0.5))
 by(prosper$Investors, prosper$ProsperScore, summary)
-dat <- prosper %>% group_by(ProsperScore) %>% summarise(n = n()) %>% arrange(ProsperScore)
+dat <- prosper %>% group_by(ProsperScore) %>% 
+   summarise(n = n()) %>% arrange(ProsperScore)
 dat
 ```
 
@@ -301,12 +301,14 @@ dat
 
 ```{r echo=FALSE, message=FALSE}
 #13. Investors by Prosper Rating
-ggplot(aes(x = ProsperRating, y = Investors), data = subset(prosper, !is.na(ProsperRating))) +
-   geom_boxplot(color = 'black', fill = colorRampPalette(c('red', 'green'))(7)) +
+ggplot(aes(x = ProsperRating, y = Investors), 
+       data = subset(prosper, !is.na(ProsperRating))) +
+   geom_boxplot(color = 'black', 
+                fill = 'light blue') +
    ggtitle('Number of Investors by Prosper Rating') +
    xlab('Prosper Score') +
    ylab('Number of Investors') +
-   coord_cartesian(ylim = c(0, 500)) +
+   coord_cartesian(ylim = c(0, 300)) +
    theme(plot.title=element_text(hjust=0.5))
 ```
 
@@ -315,24 +317,31 @@ ggplot(aes(x = ProsperRating, y = Investors), data = subset(prosper, !is.na(Pros
 ```{r echo = FALSE, message=FALSE}
 #14. Loan Amount vs Income Range
 ggplot(aes(x = IncomeRange, y = LoanOriginalAmount), data = prosper) +
-   geom_boxplot(color = 'black', fill = colorRampPalette(c('red', 'green'))(8)) +
+   geom_boxplot(color = 'black', 
+                fill = 'light blue') +
    ggtitle('Loan Amount vs Income Range') +
    xlab('Income Range') +
-   ylab('Loan Amount') +
-   theme(plot.title = element_text(hjust=.5), axis.text.x = element_text(angle = 45, hjust = 0.9))
+   ylab('Loan Amount [$]') +
+   theme(plot.title = element_text(hjust=.5), 
+         axis.text.x = element_text(angle = 45, hjust = 0.9))
 ```
 
 > This graph is showing a peculiar relationship: it seems that as the income level goes up, there is more money borrowed in a loan. One would think having a higher income would reduce the need to take out a loan for high value assets like houses, cars, etc. But quite on the contrary, the relationship between income and loan amount is direct, not inverse. Perhaps people of different income levels have different priorities - people with high income may categorize things like starting a business or other expensive ventures as high priority. People with low income would probably categorize paying off debt as high priority. It's also *possible* that people with higher income tend to buy the same things as others, but higher quality, hence a slightly increase in median loan amount. This prompts a Loan Category vs Income Range exploration.
 
 ```{r echo = FALSE, message=FALSE}
 #15. Income Range vs Listing Category
-ggplot(aes(x = ListCategory, y = ..count.., fill = IncomeRange), data = prosper) +
+ggplot(aes(x = ListCategory, y = ..count.., fill = IncomeRange), 
+       data = prosper) +
    geom_bar(position = position_stack(reverse=TRUE), color = 'black') +
-   scale_fill_manual(values = c('white', 'gray', 'dark red', 'red', 'light yellow', 'yellow', 'light green', 'green'), guide = guide_legend(reverse = TRUE)) +
+   scale_fill_manual(values = c('white', 'gray', 'dark red', 'red', 
+                                'light yellow', 'yellow', 'light green', 
+                                'green'), 
+                     guide = guide_legend(reverse = TRUE)) +
    ggtitle('Comparing Different Income Ranges within Loan Listing Categories') +
    xlab('Listing Category') +
    ylab('Count') +
-   theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle=90, hjust = 0.9, vjust = 0.5))
+   theme(plot.title = element_text(hjust = 0.5), 
+         axis.text.x = element_text(angle=90, hjust = 0.9, vjust = 0.5))
    
 ```
 
@@ -344,7 +353,8 @@ ggplot(aes(x = LenderYield, y = Investors), data = prosper) +
    geom_jitter(alpha = 1/20) +
    ggtitle('Number of Investors vs Lender Yield') +
    geom_smooth(method = 'lm') +
-   xlab('Lender Yield') +
+   scale_x_continuous(labels = percent) +
+   xlab('Lender Yield [%]') +
    ylab('Number of Investors') +
    theme(plot.title=element_text(hjust=0.5))
 
@@ -357,25 +367,38 @@ cor(prosper$LenderYield, prosper$Investors)
 ```{r echo=FALSE, message=FALSE}
 #17. Multiple CategoricalVariables vs Loan Status
 #Categorical Variables of interest are 'ProsperScore', 'ProsperRating', and 'IncomeRange'
+prosperP6 <- prosper %>% group_by(ProsperScore, Status) %>%
+   summarise(n = n())
+prosperP7 <- prosper %>% group_by(ProsperRating, Status) %>%
+   summarise(n=n())
+prosperP8 <- prosper %>% group_by(IncomeRange, Status) %>%
+   summarise(n = n())
 
-p6 <- ggplot(aes(x = ProsperScore, y = Status), data = subset(prosper, !is.na(ProsperScore))) +
-   geom_jitter(alpha = 1/100) +
+p6 <- ggplot(aes(x = ProsperScore, y = Status), 
+             data = subset(prosperP6, !is.na(ProsperScore))) +
+   geom_tile(aes(fill = n)) +
    ggtitle('Status vs Score') +
    xlab('Prosper Score') +
    ylab('Loan Status') +
+   scale_fill_gradientn(colors = c('lightcyan', 'cyan', 'lightblue','green', 'yellow', 'red')) +
    theme(plot.title=element_text(hjust=0.5))
-p7 <- ggplot(aes(x = ProsperRating, y = Status), data = subset(prosper, !is.na(ProsperRating))) +
-   geom_jitter(alpha = 1/100) +
+p7 <- ggplot(aes(x = ProsperRating, y = Status), 
+             data = subset(prosperP7, !is.na(ProsperRating))) +
+   geom_tile(aes(fill = n)) +
    ggtitle('Status vs Rating') +
    xlab('Prosper Rating') +
    ylab('Loan Status') +
+   scale_fill_gradientn(colors = c('lightcyan', 'cyan', 'lightblue','green', 'yellow', 'red')) +
    theme(plot.title=element_text(hjust=0.5))
-p8 <- ggplot(aes(x = IncomeRange, y = Status), data = subset(prosper, !is.na(IncomeRange))) +
-   geom_jitter(alpha = 1/100) +
+p8 <- ggplot(aes(x = IncomeRange, y = Status), 
+             data = subset(prosperP8, !is.na(IncomeRange))) +
+   geom_tile(aes(fill = n)) +
    ggtitle('Status vs IncomeRange') +
    xlab('IncomeRange') +
    ylab('Loan Status') +
-   theme(plot.title=element_text(hjust=0.5), axis.text.x = element_text(hjust = 0.9, angle = 45))
+   scale_fill_gradientn(colors = c('lightcyan', 'cyan', 'lightblue','green', 'yellow', 'red')) +
+   theme(plot.title=element_text(hjust=0.5), 
+         axis.text.x = element_text(hjust = 0.9, angle = 45))
 grid.arrange(p6,p7,p8,ncol = 2)
 ```
 
@@ -383,74 +406,73 @@ grid.arrange(p6,p7,p8,ncol = 2)
 
 ```{r echo = FALSE, message = FALSE, warning=FALSE}
 #18. Lender Yield vs Prosper Score
-ggplot(aes(x = ProsperScore, y = LenderYield), data = prosper[!is.na(prosper$ProsperScore),]) +
-   geom_point() +
+ggplot(aes(x = ProsperScore, y = LenderYield), 
+       data = prosper[!is.na(prosper$ProsperScore),]) +
+   geom_boxplot(fill = 'blue') +
+   scale_y_continuous(labels = percent) +
    ggtitle('Lender Yield vs Prosper Score') +
    xlab('Prosper Score') +
-   ylab('Yield') +
+   ylab('Yield [%]') +
    theme(plot.title = element_text(hjust=0.5))
 
-prosper.LYmed <- prosper%>%
-   group_by(ProsperScore) %>%
-   summarise(medianYield = median(LenderYield), n = n()) %>%
-   arrange(ProsperScore)
-
-ggplot(aes(y = medianYield, x = as.numeric(ProsperScore)), data = prosper.LYmed) +
-   geom_point() +
-   geom_line() +
-   scale_x_continuous(breaks = seq(0,11,1)) +
-   ggtitle('Median Lender Yield vs Prosper Score') +
-   xlab('Prosper Score') +
-   ylab('Median Yield') +
-   theme(plot.title = element_text(hjust=0.5))
 ```
 
-> At first, the relationship wasn't clear just by plotting all the yields against the Prosper Score. However, after grouping the scores together and getting the median yield per score, we see a much clearer picture. Higher scores usually result in lower yield, since there is lower risk involved.
+> We now see a much clearer picture. Higher scores usually result in lower yield, since there is lower risk involved.
 
 ```{r echo=FALSE, message=FALSE, warning= FALSE}
 #19. Multiple Continuous variables vs Loan Status
 #Continuous Variables of interest are 'LoanOriginalAmount', 'Investors', 'LenderYield', 'CreditScore', and 'Term'
 
-p1 <- ggplot(aes(x = Status, y = LoanOriginalAmount, group =1), data = subset(prosper, Status != 'Cancelled')) +
-   geom_point(stat = 'summary', fun.y = median) + 
-   geom_line(stat = 'summary', fun.y = median) +
+ggplot(aes(x = Status, y = LoanOriginalAmount), 
+             data = subset(prosper, Status != 'Cancelled')) +
+   geom_boxplot(fill = 'blue') + 
+   coord_cartesian(ylim = c(0, 27000)) +
    ggtitle('Loan Amount vs Status') +
-   ylab('Loan Amount') +
+   ylab('Loan Amount [$]') +
    xlab('Loan Status') +
-   theme(plot.title=element_text(hjust=0.5), axis.text.x = element_text(angle = 45, hjust = 0.9))
-p2 <- ggplot(aes(x = Status, y = Investors, group = 1), data = subset(prosper, Status != 'Cancelled')) +
-   geom_point(stat = 'summary', fun.y = median) + 
-   geom_line(stat = 'summary', fun.y = median) +
+   theme(plot.title=element_text(hjust=0.5), 
+         axis.text.x = element_text(angle = 45, hjust = 0.9))
+ggplot(aes(x = Status, y = Investors), 
+             data = subset(prosper, Status != 'Cancelled')) +
+   geom_boxplot(fill = 'blue') + 
+   coord_cartesian(ylim = c(0,300)) +
    ggtitle('Number of Investors vs Status') +
    ylab('Number of Investors') +
    xlab('Loan Status') +
-   theme(plot.title=element_text(hjust=0.5), axis.text.x = element_text(angle = 45, hjust = 0.9))
-p3 <- ggplot(aes(x = Status, y = LenderYield, group = 1), data = subset(prosper, Status != 'Cancelled')) +
-   geom_point(stat = 'summary', fun.y = median) + 
-   geom_line(stat = 'summary', fun.y = median) +
+   theme(plot.title=element_text(hjust=0.5), 
+         axis.text.x = element_text(angle = 45, hjust = 0.9))
+ggplot(aes(x = Status, y = LenderYield), 
+             data = subset(prosper, Status != 'Cancelled')) +
+   geom_boxplot(fill = 'blue') +
+   coord_cartesian(ylim = c(0,0.5)) +
+   scale_y_continuous(labels = percent) +
    ggtitle('Yield vs Status') +
-   ylab('Lender Yield') +
+   ylab('Lender Yield [%]') +
    xlab('Loan Status') +
-   theme(plot.title=element_text(hjust=0.5), axis.text.x = element_text(angle = 45, hjust = 0.9))
-p4 <- ggplot(aes(x = Status, y = CreditScoreRangeAvg, group = 1), data = subset(prosper, Status != 'Cancelled')) +
-   geom_point(stat = 'summary', fun.y = median) + 
-   geom_line(stat = 'summary', fun.y = median) +
+   theme(plot.title=element_text(hjust=0.5), 
+         axis.text.x = element_text(angle = 45, hjust = 0.9))
+ggplot(aes(x = Status, y = CreditScoreRangeAvg), 
+             data = subset(prosper, Status != 'Cancelled')) +
+   geom_boxplot(fill = 'blue') +
+   coord_cartesian(ylim = c(400, 1000)) +
    ggtitle('Credit Score vs Status') +
    ylab('Credit Score') +
    xlab('Loan Status') +
-   theme(plot.title=element_text(hjust=0.5), axis.text.x = element_text(angle = 45, hjust = 0.9))
-p5 <- ggplot(aes(x = Status, y = Term, group = 1), data = subset(prosper, Status != 'Cancelled')) +
-   geom_point(stat = 'summary', fun.y = median) + 
-   geom_line(stat = 'summary', fun.y = median) +
+   theme(plot.title=element_text(hjust=0.5), 
+         axis.text.x = element_text(angle = 45, hjust = 0.9))
+ggplot(aes(x = Status, y = Term), 
+             data = subset(prosper, Status != 'Cancelled')) +
+   geom_boxplot(fill = 'blue') +
    ggtitle('Loan Duration vs Status') +
-   ylab('Loan Duration') +
+   ylab('Loan Duration (months)') +
    xlab('Loan Status') +
-   theme(plot.title=element_text(hjust=0.5), axis.text.x = element_text(angle = 45, hjust = 0.9))
-grid.arrange(p1, p2, p3, p4, p5, ncol = 3, widths = c(0.5, 0.5, 0.5), heights = c(0.5, 0.5))
+   theme(plot.title=element_text(hjust=0.5), 
+         axis.text.x = element_text(angle = 45, hjust = 0.9))
+
 
 ```
 
-> Using the previous "Median Lender Yield vs Prosper Score" method and comparing the trend by using the median of each continuous variable, the picture becomes much more clear. I will discuss more about the relationships in the Bivariate Analysis section below. 
+> By looking at the boxplots, the picture becomes much more clear. I will discuss more about the relationships in the Bivariate Analysis section below. 
 
 
 # Bivariate Analysis
@@ -478,12 +500,13 @@ The strongest relationship is definitely Median Lender Yield vs Prosper Score. I
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots}
 #20. Median Lender Yield vs Prosper Score, by Loan Status
-ggplot(aes(x = as.numeric(ProsperScore), y = LenderYield, color = Status), data = prosper) +
-   geom_line(stat = 'summary', fun.y = median) +
-   scale_x_continuous(breaks = seq(0, 11, 1)) +
-   ggtitle('Median Lender Yield vs Prosper Score, By Loan Status') +
+ggplot(aes(x = ProsperScore, y = LenderYield, fill = Status), 
+       data = prosper) +
+   geom_boxplot() +
+   scale_y_continuous(labels = percent) +
+   ggtitle('Lender Yield vs Prosper Score, By Loan Status') +
    xlab('Prosper Score') +
-   ylab('Lender Yield') +
+   ylab('Lender Yield [%]') +
    theme(plot.title = element_text(hjust=0.5))
 ```
 
@@ -491,12 +514,14 @@ ggplot(aes(x = as.numeric(ProsperScore), y = LenderYield, color = Status), data 
 
 ```{r echo = FALSE, message=FALSE, warning=FALSE}
 #21. Median Lender Yield vs Credit Score, by Loan Status
-ggplot(aes(x = CreditScoreRangeAvg, y = LenderYield, color = Status), data = subset(prosper, Status!='Cancelled')) +
+ggplot(aes(x = CreditScoreRangeAvg, y = LenderYield, color = Status), 
+       data = subset(prosper, Status!='Cancelled')) +
    geom_line(stat = 'summary', fun.y = median) +
+   scale_y_continuous(labels = percent) +
    coord_cartesian(xlim = c(450, 850)) +
    ggtitle('Median Lender Yield vs Credit Score, By Loan Status') +
    xlab('Credit Score') +
-   ylab('Lender Yield') +
+   ylab('Lender Yield [%]') +
    theme(plot.title = element_text(hjust=0.5))
 
 ```
@@ -505,14 +530,14 @@ ggplot(aes(x = CreditScoreRangeAvg, y = LenderYield, color = Status), data = sub
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 #22. Credit Scores vs Income Level, by Loan Status
-ggplot(aes(x = IncomeRange, y = CreditScoreRangeAvg, group = Status, 
-           color = Status), data = subset(prosper, IncomeRange != 'Not displayed')) +
-   geom_point(stat = 'summary', fun.y = median) +
-   geom_line(stat = 'summary', fun.y = median) +
+ggplot(aes(x = IncomeRange, y = CreditScoreRangeAvg, fill = Status), 
+       data = subset(prosper, IncomeRange != 'Not displayed')) +
+   geom_boxplot() +
    ggtitle('Credit Scores vs Income Level, By Loan Status') +
    xlab('Income Range') +
    ylab('Credit Score') +
-   theme(plot.title = element_text(hjust = 0.5), axis.text.x=element_text(hjust = 0.9, angle = 45))
+   theme(plot.title = element_text(hjust = 0.5), 
+         axis.text.x=element_text(hjust = 0.9, angle = 45))
    
 
 ```
@@ -563,12 +588,13 @@ The limitations of my model include:
 
 ### Plot One
 ```{r echo=FALSE, warning = FALSE, Plot_One}
-ggplot(aes(x = as.numeric(ProsperScore), y = LenderYield, color = Status), data = prosper) +
-   geom_line(stat = 'summary', fun.y = median) +
-   scale_x_continuous(breaks = seq(0, 11, 1)) +
-   ggtitle('Median Lender Yield vs Prosper Score, By Loan Status') +
+ggplot(aes(x = ProsperScore, y = LenderYield, fill = Status), 
+       data = prosper) +
+   geom_boxplot() +
+   scale_y_continuous(labels = percent) +
+   ggtitle('Lender Yield vs Prosper Score, By Loan Status') +
    xlab('Prosper Score') +
-   ylab('Lender Yield') +
+   ylab('Lender Yield [%]') +
    theme(plot.title = element_text(hjust=0.5))
 ```
 
@@ -579,25 +605,30 @@ This is a multivariate plot, summarizes the relationship between Lender Yield, P
 ```{r echo=FALSE, Plot_Two}
 ggplot(aes(x = ListCategory, y = ..count.., fill = IncomeRange), data = prosper) +
    geom_bar(position = position_stack(reverse=TRUE), color = 'black') +
-   scale_fill_manual(values = c('white', 'gray', 'dark red', 'red', 'light yellow', 'yellow', 'light green', 'green'), guide = guide_legend(reverse = TRUE)) +
+   scale_fill_manual(values = c('white', 'gray', 'dark red', 'red', 
+                                'light yellow', 'yellow', 'light green', 
+                                'green'), 
+                     guide = guide_legend(reverse = TRUE)) +
    ggtitle('Comparing Different Income Ranges within Loan Listing Categories') +
    xlab('Listing Category') +
    ylab('Count') +
-   theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle=90, hjust = 0.9, vjust = 0.5))
+   theme(plot.title = element_text(hjust = 0.5), 
+         axis.text.x = element_text(angle=90, hjust = 0.9, vjust = 0.5))
 ```
 
 ### Description Two
 This stacked bar chart gives us a glimpse of why people go onto prosper.com and ask others for loans. The majority of loans taken out from Prosper is for "Debt Consolidation". Out of this category, almost all of the loans are taken out by people with income. It's also interesting to see quite a few people who have $100k salary take out loans for consolidating debts.
 
 ### Plot Three
-```{r echo=FALSE, Plot_Three}
-ggplot(aes(x = ProsperRating, y = Investors), data = subset(prosper, !is.na(ProsperRating))) +
-   geom_boxplot(color = 'black', fill = colorRampPalette(c('red', 'green'))(7)) +
-   ggtitle('Number of Investors by Prosper Rating') +
-   xlab('Prosper Score') +
-   ylab('Number of Investors') +
-   coord_cartesian(ylim = c(0, 500)) +
-   theme(plot.title=element_text(hjust=0.5))
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Three}
+ggplot(aes(x = ProsperRating), 
+       data = subset(prosper, !is.na(ProsperRating))) +
+   geom_histogram(stat="count", color = 'black', 
+                  fill = 'light blue') +
+   ggtitle('Number of Loans by Prosper Rating') +
+   xlab('Prosper Rating') +
+   ylab('Count') +
+   theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ### Description Three
@@ -609,6 +640,8 @@ The boxplot shows how attractive loans with high scores are. Judging by the medi
 
 This was a large dataset with over 80 variables, so I felt going through the entire analysis process was quite an accomplishment. With barely any knowledge in the financial industry, I was surprised how far I could get with common sense, a large dose of curiosity, and R coding skills.
 
-One of the challenges I faced while analyzing this dataset was understanding what each of the variable stood for and their meaning. After looking through the variable dictionary a few times, I let my common sense kick in and picked a few variables that should have some obvious relationships, and go from there. Another challenge was choosing which type of visualization would prove most useful to display the relationships amongst variables, and constantly going through stackoverflow flow tips on using different functions for ggplot2.
+One of the challenges I faced while analyzing this dataset was understanding what each of the variable stood for and their meaning. After looking through the variable dictionary a few times, I let my common sense kick in and picked a few variables that should have some obvious relationships, and go from there. Another challenge was choosing which type of visualization would prove most useful to display the relationships amongst variables, and constantly going through stackoverflow tips on using different functions for ggplot2.
+
+As I made progress in the analysis, I quickly realized that there was a lack of a main feature of interest. Depending on who is in possession of this dataset, that person may see a feature of interest that is completely different from the next person. Could it be whether a borrower is delinquent? The amount that is delinquent? Predict whether the status of a loan is good or not? Predict the lender yield? Or is it to figure out how Prosper rates and scores each loan? By the time I moved onto bivariate analysis, my original feature of interest, "Loan Status", kind of shifted to "LenderYield", and I had to make adjustments to previous graphs, summaries, and transformations, etc. In short, staying focused on 1 single feature of interest was very hard. However, once I made that shift, I explored potential relationships that are reasonable, and created a linear model that does a decent job predicting the Lender Yield.
 
 One thing I realized later in the analysis was I could perhaps transform or combine variables, and utilize other types of models, like logistic regression to predict categorical varialbles such as Loan Status. Other data manipulation techniques such as checking and transmuting outliers may also help with the predictive power of my current linear model.
